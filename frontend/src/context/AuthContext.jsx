@@ -12,9 +12,30 @@ export const AuthProvider = ({ children }) => {
     const token = localStorage.getItem('token');
     if (storedUser && token) {
       setUser(JSON.parse(storedUser));
+      // Refresh current user data from backend to ensure status is up to date
+      api.get('/auth/me')
+        .then(({ data }) => {
+          if (data && data.user) {
+            localStorage.setItem('user', JSON.stringify(data.user));
+            setUser(data.user);
+          }
+        })
+        .catch(() => {
+          // Token may be invalid or server offline; keep stored user or handle cleanly
+        })
+        .finally(() => setLoading(false));
+    } else {
+      setLoading(false);
     }
-    setLoading(false);
   }, []);
+
+  const updateUser = (updatedData) => {
+    setUser(prev => {
+      const newUser = { ...prev, ...updatedData };
+      localStorage.setItem('user', JSON.stringify(newUser));
+      return newUser;
+    });
+  };
 
   const login = async (email, password) => {
     const { data } = await api.post('/auth/login', { email, password });
@@ -35,7 +56,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, setUser, login, register, logout, loading }}>
+    <AuthContext.Provider value={{ user, setUser, updateUser, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

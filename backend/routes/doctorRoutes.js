@@ -2,6 +2,17 @@ const express = require('express');
 const User = require('../models/User');
 const router = express.Router();
 
+// Get list of available doctors for live consultation
+router.get('/available', async (req, res) => {
+  try {
+    const doctors = await User.find({ role: 'DOCTOR', status: 'VERIFIED', availability: 'AVAILABLE' })
+      .select('name plusRank availability credentials ratingSum ratingCount');
+    res.json(doctors);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // Mock endpoint to approve doctor
 router.put('/:id/approve', async (req, res) => {
   try {
