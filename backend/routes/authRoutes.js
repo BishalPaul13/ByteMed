@@ -2,13 +2,14 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { logAudit } = require('../services/auditService');
 
 const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'bytemed_secret_key';
 
 router.post('/register', async (req, res) => {
   try {
-    const { name, email, password, role, credentials } = req.body;
+    const { name, email, password, role, credentials, specialty, bio } = req.body;
     const existingUser = await User.findOne({ email });
     
     if (existingUser) return res.status(400).json({ message: 'User already exists' });
@@ -18,13 +19,38 @@ router.post('/register', async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role,
+      role: role || 'PATIENT',
       credentials: role === 'DOCTOR' ? credentials : null,
-      status: role === 'DOCTOR' ? 'PENDING' : undefined
+      specialty: role === 'DOCTOR' ? (specialty || 'General') : undefined,
+      bio: bio || '',
+      status: role === 'DOCTOR' ? 'PENDING' : 'VERIFIED',
+      accountState: 'ACTIVE',
+      totalReputationScore: role === 'DOCTOR' ? 100 : 0,
+      plusRank: 'Plus 1 (+)',
+      rankNumber: 1
     });
     
     await user.save();
-    res.status(201).json({ message: 'User created successfully', user: { id: user._id, role: user.role } });
+
+    await logAudit({
+      actorId: user._id,
+      actorRole: user.role,
+      action: 'USER_REGISTERED',
+      targetType: 'USER',
+      targetId: user._id,
+      details: { role: user.role, email: user.email }
+    });
+
+    res.status(201).json({ 
+      message: 'User created successfully', 
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email, 
+        role: user.role,
+        status: user.status 
+      } 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -37,11 +63,39 @@ router.post('/login', async (req, res) => {
     
     if (!user) return res.status(404).json({ message: 'User not found' });
     
+    if (user.accountState === 'SUSPENDED') {
+      return res.status(403).json({ message: 'This account has been suspended by trust & safety moderators.' });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) return res.status(400).json({ message: 'Invalid credentials' });
     
-    const token = jwt.sign({ id: user._id, role: user.role, status: user.status }, JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, user: { id: user._id, name: user.name, role: user.role, status: user.status, plusRank: user.plusRank } });
+    const token = jwt.sign(
+      { id: user._id, role: user.role, status: user.status }, 
+      JWT_SECRET, 
+      { expiresIn: '7d' }
+    );
+
+    res.json({ 
+      token, 
+      user: { 
+        id: user._id, 
+        name: user.name, 
+        email: user.email,
+        role: user.role, 
+        status: user.status, 
+        accountState: user.accountState,
+        specialty: user.specialty,
+        plusRank: user.plusRank,
+        rankNumber: user.rankNumber,
+        totalReputationScore: user.totalReputationScore,
+        averageAiScore: user.averageAiScore,
+        averagePatientRating: user.averagePatientRating,
+        contributionsCount: user.contributionsCount,
+        liveSessionsCount: user.liveSessionsCount,
+        availability: user.availability
+      } 
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -55,13 +109,23 @@ router.get('/me', async (req, res) => {
     const decoded = jwt.verify(token, JWT_SECRET);
     const user = await User.findById(decoded.id).select('-password');
     if (!user) return res.status(404).json({ message: 'User not found' });
+    
     res.json({
       user: {
         id: user._id,
         name: user.name,
+        email: user.email,
         role: user.role,
         status: user.status,
+        accountState: user.accountState,
+        specialty: user.specialty,
         plusRank: user.plusRank,
+        rankNumber: user.rankNumber,
+        totalReputationScore: user.totalReputationScore,
+        averageAiScore: user.averageAiScore,
+        averagePatientRating: user.averagePatientRating,
+        contributionsCount: user.contributionsCount,
+        liveSessionsCount: user.liveSessionsCount,
         availability: user.availability
       }
     });

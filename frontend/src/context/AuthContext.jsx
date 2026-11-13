@@ -49,7 +49,14 @@ export const AuthProvider = ({ children }) => {
     await api.post('/auth/register', userData);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    if (user?.role === 'DOCTOR' && user?.id) {
+      try {
+        await api.put(`/doctors/${user.id}/availability`, { availability: 'OFFLINE' });
+      } catch (e) {
+        // silent fail on network disconnect
+      }
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     setUser(null);

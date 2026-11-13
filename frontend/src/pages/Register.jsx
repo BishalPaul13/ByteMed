@@ -3,12 +3,15 @@ import { AuthContext } from '../context/AuthContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { HeartPulse, Mail, Lock, User, FileText, ArrowRight, Stethoscope, UserCheck, CheckCircle2 } from 'lucide-react';
 
+const SPECIALTIES = ['General', 'Cardiology', 'Dermatology', 'Neurology', 'Pediatrics', 'Orthopedics'];
+
 const Register = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [role, setRole] = useState('PATIENT');
-  const [credentials, setCredentials] = useState('MD-LIC-2024-8849 (Internal Medicine)');
+  const [specialty, setSpecialty] = useState('General');
+  const [credentials, setCredentials] = useState('MD - State Medical Board Lic #89214');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { register } = useContext(AuthContext);
@@ -19,7 +22,7 @@ const Register = () => {
     setError('');
     setLoading(true);
     try {
-      await register({ name, email, password, role, credentials });
+      await register({ name, email, password, role, specialty, credentials });
       navigate('/login');
     } catch (err) {
       setError(err.response?.data?.message || 'Registration failed. Please check your information.');
@@ -41,7 +44,7 @@ const Register = () => {
           Create your ByteMed Account
         </h2>
         <p className="mt-2 text-sm text-slate-400">
-          Join the community-first medical consultation and contribution network.
+          Join the community-first medical consultation and 8-rank contribution platform.
         </p>
       </div>
 
@@ -156,24 +159,41 @@ const Register = () => {
               </div>
             </div>
 
-            {/* Doctor Verification Notice & Credentials Input */}
+            {/* Doctor Specialty & Verification Credentials */}
             {role === 'DOCTOR' && (
-              <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 space-y-2">
-                <div className="flex items-center space-x-2 text-indigo-300 text-xs font-semibold">
-                  <FileText className="w-4 h-4" />
-                  <span>Medical Credentials & License</span>
+              <div className="p-3.5 rounded-xl bg-indigo-950/40 border border-indigo-500/30 space-y-3">
+                <div>
+                  <label className="block text-xs font-semibold text-indigo-300 uppercase tracking-wider mb-1">
+                    Medical Specialty
+                  </label>
+                  <select
+                    value={specialty}
+                    onChange={(e) => setSpecialty(e.target.value)}
+                    className="block w-full px-3 py-2 text-xs rounded-lg bg-slate-900 border border-indigo-500/30 text-white focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  >
+                    {SPECIALTIES.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
                 </div>
-                <input
-                  type="text"
-                  value={credentials}
-                  onChange={(e) => setCredentials(e.target.value)}
-                  required
-                  placeholder="e.g. State Medical Board License # / Verification URL"
-                  className="block w-full px-3 py-2 text-xs rounded-lg bg-slate-900 border border-indigo-500/30 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-400"
-                />
-                <p className="text-[11px] text-slate-400 leading-relaxed">
-                  Doctor accounts enter a <strong className="text-amber-400">PENDING</strong> verification status until admin credentials approval.
-                </p>
+
+                <div>
+                  <div className="flex items-center space-x-2 text-indigo-300 text-xs font-semibold mb-1">
+                    <FileText className="w-4 h-4" />
+                    <span>Medical Credentials & License</span>
+                  </div>
+                  <input
+                    type="text"
+                    value={credentials}
+                    onChange={(e) => setCredentials(e.target.value)}
+                    required
+                    placeholder="e.g. State Medical Board License # / Verification URL"
+                    className="block w-full px-3 py-2 text-xs rounded-lg bg-slate-900 border border-indigo-500/30 text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  />
+                  <p className="text-[11px] text-slate-400 leading-relaxed mt-1">
+                    Doctor accounts enter a <strong className="text-amber-400">PENDING</strong> verification status until admin credentials approval.
+                  </p>
+                </div>
               </div>
             )}
 

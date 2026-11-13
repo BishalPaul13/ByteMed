@@ -17,7 +17,9 @@ const Login = () => {
     setLoading(true);
     try {
       const user = await login(email, password);
-      if (user.role === 'DOCTOR') {
+      if (user.role === 'ADMIN') {
+        navigate('/admin');
+      } else if (user.role === 'DOCTOR') {
         navigate('/doctor');
       } else {
         navigate('/patient');
@@ -42,10 +44,10 @@ const Login = () => {
           <HeartPulse className="w-7 h-7 text-white" />
         </div>
         <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-100 to-slate-400 bg-clip-text text-transparent">
-          Welcome back to ByteMed
+          Welcome to ByteMed
         </h2>
         <p className="mt-2 text-sm text-slate-400">
-          The collaborative community healthcare and physician response network.
+          The 8-rank physician contribution & clinical consultation platform.
         </p>
       </div>
 
